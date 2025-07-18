@@ -324,8 +324,9 @@ Please try again with a PDF, DOCX, or text file (max 5MB).`,
                   type="file"
                   ref={fileInputRef}
                   onChange={handleFileUpload}
-                  accept=".pdf,.docx,.txt"
+                  accept=".pdf,.docx,.doc,.txt,.rtf"
                   className="hidden"
+                  aria-label="Upload resume file"
                 />
                 <Button
                   onClick={() => fileInputRef.current?.click()}
@@ -336,7 +337,7 @@ Please try again with a PDF, DOCX, or text file (max 5MB).`,
                   <Upload className="h-4 w-4 mr-2" />
                   {resumeData ? "Replace File" : "Choose File"}
                 </Button>
-                <p className="text-xs text-gray-500">PDF, DOCX, TXT (max 5MB)</p>
+                <p className="text-xs text-gray-500">PDF, DOCX, DOC, TXT, RTF (max 5MB)</p>
               </CardContent>
             </Card>
 

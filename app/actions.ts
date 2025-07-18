@@ -51,16 +51,71 @@ export async function uploadResume(formData: FormData) {
     if (file.type === "text/plain") {
       content = await file.text()
     } else if (file.type === "application/pdf") {
-      // Handle PDF files
+      // Handle PDF files with multiple parsing approaches
       const arrayBuffer = await file.arrayBuffer()
       const buffer = Buffer.from(arrayBuffer)
       
+      // Try primary PDF parser (pdf-parse)
       try {
         const pdfParse = (await import("pdf-parse")).default
-        const pdfData = await pdfParse(buffer)
+        const pdfData = await pdfParse(buffer, {
+          max: 0, // Parse all pages
+        })
         content = pdfData.text
+        
+        // Check if content was successfully extracted
+        if (!content || content.trim().length === 0) {
+          throw new Error("No text content found in PDF")
+        }
       } catch (pdfError) {
-        throw new Error("Failed to parse PDF file. Please make sure it's a valid PDF with selectable text.")
+        console.error("Primary PDF parsing failed:", pdfError)
+        
+        // Try alternative approach with pdfjs-dist
+        try {
+          const pdfjs = await import("pdfjs-dist")
+          const pdfDoc = await pdfjs.getDocument({ data: arrayBuffer }).promise
+          let fullText = ""
+          
+          for (let i = 1; i <= pdfDoc.numPages; i++) {
+            const page = await pdfDoc.getPage(i)
+            const textContent = await page.getTextContent()
+            const pageText = textContent.items
+              .filter((item: any) => item.str)
+              .map((item: any) => item.str)
+              .join(' ')
+            fullText += pageText + '\n'
+          }
+          
+          content = fullText.trim()
+          
+          if (!content || content.length === 0) {
+            throw new Error("No text content found in PDF")
+          }
+        } catch (fallbackError) {
+          console.error("Fallback PDF parsing also failed:", fallbackError)
+          
+          // Provide helpful error messages
+          const errorMessage = pdfError instanceof Error ? pdfError.message : "Unknown PDF error"
+          
+          if (errorMessage.includes("Invalid PDF") || errorMessage.includes("corrupt")) {
+            throw new Error("The PDF file appears to be corrupted. Please try re-saving or converting your PDF to text format.")
+          } else if (errorMessage.includes("password") || errorMessage.includes("encrypted")) {
+            throw new Error("This PDF is password-protected. Please remove the password and try again, or copy-paste the text content.")
+          } else if (errorMessage.includes("No text content")) {
+            content = `[PDF File: ${file.name}]
+
+This PDF appears to contain mostly images or non-selectable text. 
+
+**Alternative options:**
+1. **Copy-paste method**: Open your PDF, select all text (Ctrl+A), copy (Ctrl+C), and paste it directly in the chat
+2. **Convert to text**: Use an online PDF-to-text converter
+3. **Re-save as text-searchable PDF**: If it's a scanned document, use OCR software
+
+Once you have the text content, paste it here and I'll provide comprehensive resume analysis and suggestions!`
+          } else {
+            throw new Error(`PDF processing failed. Please try converting to text format or copy-paste the content directly. Error: ${errorMessage}`)
+          }
+        }
       }
     } else if (file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || file.type === "application/msword") {
       // Handle DOCX and DOC files - for now, show a helpful message
