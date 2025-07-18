@@ -2,34 +2,34 @@
 
 import type React from "react"
 
-import { useState, useRef, useEffect } from "react"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import {
-  FileText,
-  Send,
-  Upload,
-  Bot,
-  User,
-  Sparkles,
-  CheckCircle,
-  FileCheck,
-  MessageSquare,
-  Target,
-  Zap,
-  Settings,
-  TrendingUp,
-  Search,
-  Edit,
-  Layout,
-  Plus,
+    Bot,
+    CheckCircle,
+    Edit,
+    FileCheck,
+    FileText,
+    Layout,
+    MessageSquare,
+    Plus,
+    Search,
+    Send,
+    Settings,
+    Sparkles,
+    Target,
+    TrendingUp,
+    Upload,
+    User,
+    Zap,
 } from "lucide-react"
-import { chatWithBot, uploadResume, executeQuickAction } from "./actions"
+import { useEffect, useRef, useState } from "react"
+import { chatWithBot, executeQuickAction, uploadResume } from "./actions"
 
 interface Message {
   id: string
@@ -446,7 +446,24 @@ Please try again with a PDF, DOCX, or text file (max 5MB).`,
                       </div>
                     ))}
 
-                    <div ref={messagesEndRef} />
+                    {/* Loading Animation */}
+                    {isLoading && (
+                      <div className="flex gap-3 justify-start">
+                        <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-2 rounded-full h-8 w-8 flex items-center justify-center flex-shrink-0">
+                          <Bot className="h-4 w-4 text-white animate-pulse" />
+                        </div>
+                        <div className="max-w-[85%] rounded-lg px-4 py-3 bg-gray-50 text-gray-900 border">
+                          <div className="flex items-center gap-2">
+                            <div className="typing-indicator">
+                              <div className="typing-dot"></div>
+                              <div className="typing-dot"></div>
+                              <div className="typing-dot"></div>
+                            </div>
+                            <span className="text-sm text-gray-600 ml-2">ResumeCraftBot is analyzing...</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </ScrollArea>
 
@@ -464,7 +481,11 @@ Please try again with a PDF, DOCX, or text file (max 5MB).`,
                       className="flex-1"
                     />
                     <Button onClick={handleSendMessage} disabled={isLoading || !inputMessage.trim()} size="icon">
-                      <Send className="h-4 w-4" />
+                      {isLoading ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                   <div className="flex gap-2 mt-2">
