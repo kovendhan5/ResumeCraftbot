@@ -1,7 +1,7 @@
 "use server"
 
-import { generateText } from "ai"
 import { google } from "@ai-sdk/google"
+import { generateText } from "ai"
 
 interface Message {
   id: string
@@ -37,10 +37,12 @@ export async function uploadResume(formData: FormData) {
   const allowedTypes = [
     "application/pdf",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/msword", // .doc files
     "text/plain",
+    "text/rtf", // Rich Text Format
   ]
   if (!allowedTypes.includes(file.type)) {
-    throw new Error("Unsupported file type. Please upload a PDF, DOCX, or TXT file.")
+    throw new Error("Unsupported file type. Please upload a PDF, DOCX, DOC, RTF, or TXT file.")
   }
 
   try {
@@ -48,16 +50,40 @@ export async function uploadResume(formData: FormData) {
 
     if (file.type === "text/plain") {
       content = await file.text()
-    } else {
-      // For PDF and DOCX files - in production, use pdf-parse or mammoth
-      content = await file.text() // Fallback for demo
-      if (!content.trim()) {
-        content = `[Resume content from ${file.name}]
-
-This is a placeholder for actual file content extraction. In a production environment, this would contain the actual text extracted from your ${file.type === "application/pdf" ? "PDF" : "DOCX"} file.
-
-Please paste your resume content in the chat or upload a plain text file for full functionality.`
+    } else if (file.type === "application/pdf") {
+      // Handle PDF files
+      const arrayBuffer = await file.arrayBuffer()
+      const buffer = Buffer.from(arrayBuffer)
+      
+      try {
+        const pdfParse = (await import("pdf-parse")).default
+        const pdfData = await pdfParse(buffer)
+        content = pdfData.text
+      } catch (pdfError) {
+        throw new Error("Failed to parse PDF file. Please make sure it's a valid PDF with selectable text.")
       }
+    } else if (file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || file.type === "application/msword") {
+      // Handle DOCX and DOC files - for now, show a helpful message
+      content = `[Word Document: ${file.name}]
+
+For Word documents (.docx/.doc), please convert to PDF or plain text format for optimal processing. 
+
+Alternatively, you can:
+1. Open your Word document
+2. Copy the text content
+3. Paste it directly in the chat
+
+This will allow me to provide the best resume analysis and suggestions.`
+    } else if (file.type === "text/rtf") {
+      // Handle RTF files
+      const text = await file.text()
+      content = text.replace(/\\[^\\{}]+/g, '').replace(/[{}]/g, '').trim()
+    } else {
+      content = await file.text() // Fallback
+    }
+
+    if (!content.trim()) {
+      throw new Error("No text content found in the file. Please ensure your file contains readable text.")
     }
 
     return {
@@ -66,6 +92,9 @@ Please paste your resume content in the chat or upload a plain text file for ful
       size: file.size,
     }
   } catch (error) {
+    if (error instanceof Error) {
+      throw error
+    }
     throw new Error("Failed to process file. Please try again.")
   }
 }
