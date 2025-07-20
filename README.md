@@ -165,8 +165,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - AI integration powered by [AI SDK](https://sdk.vercel.ai/)
 - Icons by [Lucide](https://lucide.dev/)
 
-## 📱 Screenshots
-
 ## 🔮 Future Enhancements
 
 - [ ] Multi-language support
